@@ -18,10 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <stdio.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include<stdio.h>
+#include<string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,18 +32,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-///*! \brief If Modbus Master ASCII support is enabled. */
-//#define MB_MASTER_ASCII_ENABLED					( 0 )
-///*! \brief If Modbus Master RTU support is enabled. */
-//#define MB_MASTER_RTU_ENABLED					( 1 )
-///*! \brief If Modbus Master TCP support is enabled. */
-//#define MB_MASTER_TCP_ENABLED					( 0 )
-///*! \brief If Modbus Slave ASCII support is enabled. */
-//#ifndef INC_MODBUS_CRC_H_
-//#define INC_MODBUS_CRC_H_
-//uint16_t crc16(uint8_t *buffer, uint16_t buffer_length);
-//bool check_crc16(uint8_t *buffer, uint16_t length);
-//#endif
 
 
 
@@ -67,12 +56,13 @@ volatile uint8_t data_received_flag=0;
 
 char key='\0';
 char last_key ='\0';
-char button_input[4]= {}; //chuoi nhap phim tu ban phim
+char button_input[16]= {}; //chuoi nhap phim tu ban phim
 volatile uint8_t button_count = 0;
 volatile uint8_t rx_count = 0;
-//volatile uint8_t rx_data = 0;
-//volatile uint8_t tx_buffer[256];
-//volatile uint8_t rx_buffer[256];
+volatile uint16_t count_time_send =0;
+volatile uint16_t count_time_received =0;
+volatile uint8_t count_time_send_flag =0;
+volatile uint8_t count_time_received_flag =0;
 uint8_t tx_buffer[256];
 uint8_t rx_buffer[256];
 
@@ -86,6 +76,8 @@ uint8_t rx_buffer[256];
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
@@ -96,7 +88,6 @@ uint16_t Modbus_CRC16(uint8_t *buffer, uint16_t length_data) { // length
         crc ^= buffer[i];  // XOR voi du lieu dau vao: crc = crc^buffer[i];
         for (uint8_t j = 0; j < 8; j++) {
             if (crc & 0x0001) {
-//                crc = (crc >> 1) ^ 0xA001;  // Đa thức CRC-16 Modbus
             	crc >>= 1;
             	crc = crc ^ 0xA001;
             } else {
@@ -106,9 +97,6 @@ uint16_t Modbus_CRC16(uint8_t *buffer, uint16_t length_data) { // length
     }
     return crc;
 }
-// ham gui du lieu modbus qua uart
-// neu khong can truyen du lieu thi truyen data = NULL va length_data = 0
-
 
 //MODBUS_NHAN_1_PHIM
 //void Send_Modbus(UART_HandleTypeDef *huart, uint8_t slaveID, uint16_t address, uint8_t data, uint8_t length_data) {
@@ -129,13 +117,11 @@ uint16_t Modbus_CRC16(uint8_t *buffer, uint16_t length_data) { // length
 //    HAL_UART_Transmit(huart, tx_buffer, sizeof(tx_buffer), 100);
 //}
 
-////MODBUS_NHAP_NHIEU_PHIM
+////MODBUS_NHAP_NHIEU_PHIM (FUNCTION 16_Write Multiple Registers)
 void Send_Modbus(UART_HandleTypeDef *huart, uint8_t slaveID,
 		uint16_t address,uint16_t quantity,uint16_t byte_count
 		,uint8_t * data, uint8_t length_data) {
-//    uint8_t tx_buffer[256];
-//    if(length_data > 250) return;
-//	uint8_t tx_buffer[256]={0};
+
     tx_buffer[0] = slaveID;                 // dia chi Slave
     tx_buffer[1] = 0x10;                     // Function Code: Read Holding Register
     tx_buffer[2] = (address >> 8) & 0xFF;    // address High
@@ -146,8 +132,8 @@ void Send_Modbus(UART_HandleTypeDef *huart, uint8_t slaveID,
     tx_buffer[6] = (quantity *2) & 0xFF; //byte_count
 
     for (int i = 0; i < quantity; i++) {
-        tx_buffer[7 + (i*2 )] = (data[i] >> 8) & 0xFF; // High byte
-        tx_buffer[8 + (i*2 )] = (data[i]) & 0xFF;        // Low byte
+        tx_buffer[7 + (i*2)] = (data[i] >> 8) & 0xFF; // High byte
+        tx_buffer[8 + (i*2)] = (data[i]) & 0xFF;        // Low byte
     }
     uint16_t crc = Modbus_CRC16(tx_buffer, 7 + (quantity*2)); // 7 + length_data / sizeof(data)????
     tx_buffer[7 + (quantity*2)] = crc & 0xFF;      // CRC Low byte
@@ -157,21 +143,18 @@ void Send_Modbus(UART_HandleTypeDef *huart, uint8_t slaveID,
 }
 
 
-void Received_Modbus (UART_HandleTypeDef *huart, uint8_t slaveID,uint8_t function,
-		uint16_t address, uint16_t quantity){
-	uint8_t byte_count = quantity *2;
+void Received_Modbus (){
 
 //	HAL_UART_Receive_IT(huart, rx_buffer,8); // nhan o cho khac -> duwjng cowf -> nhay vao received_modbus
-	// tach frane -> so sanh -> neu giong thi done
+	// tach frane -> so sanh -> neu giong thi done => DONE
 
 	uint16_t received_crc = (rx_buffer[8 - 1] << 8) | rx_buffer[8 - 2];
 	uint16_t calculated_crc = Modbus_CRC16(rx_buffer, 8 - 2);
-//	HAL_UART_Receive(huart, rx_buffer, 8, 100);
 	if (rx_buffer[0] == tx_buffer[0] && rx_buffer[1] == tx_buffer[1]) {
 		if(rx_buffer [2] == tx_buffer[2] && rx_buffer[3] == tx_buffer[3]){
 			if (received_crc == calculated_crc){
 				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-				HAL_Delay(1000);
+				HAL_Delay(500);
 				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 				printf ("Du lieu hop le: ");
 				for (int i=0; i<8; i++){
@@ -193,7 +176,6 @@ void Received_Modbus (UART_HandleTypeDef *huart, uint8_t slaveID,uint8_t functio
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-//	HAL_Delay(10);
 	if(GPIO_Pin == GPIO_PIN_0){
 		g_row_flag=1;
 		key = scan_keypad();
@@ -214,7 +196,6 @@ char scan_keypad(void){
 	int selected_col=0;
 	for (int col =0; col <4; col++){
 
-//		HAL_GPIO_WritePin(COL, COL1 | COL2 | COL3 | COL4, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(COL, COL1, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(COL, COL2, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(COL, COL3, GPIO_PIN_SET);
@@ -225,15 +206,15 @@ char scan_keypad(void){
 		if(col == 2) HAL_GPIO_WritePin(COL, COL3, GPIO_PIN_RESET);
 		if(col == 3) HAL_GPIO_WritePin(COL, COL4, GPIO_PIN_RESET);
 
-		if (/*g_row_flag==1 &&*/(HAL_GPIO_ReadPin(ROW, ROW1) == GPIO_PIN_RESET)){
+		if ((HAL_GPIO_ReadPin(ROW, ROW1) == GPIO_PIN_RESET)){
 			selected_col = col;
 			key = a[0][selected_col];
 		}
-		else if(/*g_row_flag==2 &&*/(HAL_GPIO_ReadPin(ROW, ROW2) == GPIO_PIN_RESET)){
+		else if((HAL_GPIO_ReadPin(ROW, ROW2) == GPIO_PIN_RESET)){
 			selected_col = col;
 			key = a[1][selected_col];
 		}
-		else if(/*g_row_flag==3 && */(HAL_GPIO_ReadPin(ROW, ROW3) == GPIO_PIN_RESET)){
+		else if((HAL_GPIO_ReadPin(ROW, ROW3) == GPIO_PIN_RESET)){
 			selected_col = col;
 			key = a[2][selected_col];
 		}
@@ -254,6 +235,7 @@ char scan_keypad(void){
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -261,21 +243,24 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint8_t rx_data=0;
-//uint8_t tx_data[6]="hello\n";
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if(huart->Instance == USART1){
 		HAL_UART_Receive_IT(&huart1, &rx_data, 1);
-//		for (int i=0; i<8; i++){
 		rx_buffer[rx_count++]= rx_data;
-//			rx_count++;
-//		}
-//		HAL_UART_Transmit(&huart1,&rx_data,sizeof(rx_data), 100);
+		count_time_received = 0;
+	}
+}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+    if (htim->Instance == TIM2) {
 
-        if (rx_count >= 8) {
-            data_received_flag = 1; // Dung co nhan du data
-            rx_count = 0;           // Reset bien diem
-        }
-
+    	count_time_send++;
+    	if(count_time_send > 1000){
+    		count_time_send_flag =1;
+    	}
+    	count_time_received++;
+    	if(count_time_received > 500 && rx_count>0){
+    		count_time_received_flag =1;
+    	}
 	}
 }
 // HIEN THI PHIM (UART)
@@ -304,8 +289,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-//  uint16_t registers[4] = {1, 2, 3, 4}; // Giả sử nhập "1234"
-//  Send_Modbus(&huart1, 0x11, 0x0001,0x0002,0x04, registers, 4);
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -318,10 +302,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-//  HAL_UART_Transmit(&huart1,tx_data,sizeof(tx_data),100);
+
   HAL_UART_Receive_IT(&huart1,&rx_data, 1);
-//  Send_Modbus();
+  HAL_TIM_Base_Start_IT(&htim2);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -333,31 +319,29 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-      HAL_Delay(100);
-	  if(key != '\0' ){
-		  if(button_count <4){
-			  button_input[button_count]= key;
-			  button_count++;
-//			  Send_Modbus(&huart1, 0x11, 0x0001,0x0002,0x04, (uint8_t )*button_input, sizeof(button_input));
-	//		  Send_Modbus(&huart1, 0x01, 0x0001, (uint8_t )key, 1);
 
+	  if(key != '\0' ){
+		  button_input[button_count]= key;
+		  button_count++;
+		  count_time_send =0;
+		  count_time_send_flag=0;
 		  key ='\0';
 		  }
-		  if (button_count == 4){
-//			  Send_Modbus(&huart1, 0x01, 0x0001, (uint8_t *)button_input, 1);
-			  Send_Modbus(&huart1, 0x11, 0x0001,4,8, (uint8_t *)button_input, sizeof(button_input));
-
+		  if (count_time_send_flag && button_count >0){
+			  Send_Modbus(&huart1, 0x11, 0x0001,button_count,button_count*2,(uint8_t *)button_input, sizeof(button_input));
+			  count_time_send_flag = 0;
 			  button_count =0;
 		  }
-	  }
 
-	  if(data_received_flag){
-//		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-//		  HAL_Delay (1000);
-		  Received_Modbus(&huart1,0x11,0x0001, rx_buffer, 4);
+	  if(count_time_received_flag ){
+		  Received_Modbus();
+		  rx_count = 0;
+		  memset(button_input, 0, sizeof(button_input));
+		  memset(rx_buffer, 0, sizeof(rx_buffer));
+		  memset(tx_buffer, 0, sizeof(tx_buffer));
 
-//		  HAL_UART_Transmit(&huart1, &rx_data, sizeof(rx_data), 100);
-		  data_received_flag=0;
+		  count_time_received_flag=0;
+
 	  }
   }
 }
@@ -403,11 +387,56 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 8000;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-	static void MX_USART1_UART_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART1_Init 0 */
@@ -460,7 +489,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
