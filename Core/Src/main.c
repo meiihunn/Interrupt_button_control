@@ -406,7 +406,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-
 	  if(key != '\0' ){
 		  button_input[button_count]= key;
 		  button_count++;
@@ -420,17 +419,12 @@ int main(void)
 
 		  button_count =0;
 		  }
-
 	  if(count_time_received_flag ){
 		  Received_Modbus();
-
 		  rx_count = 0;
-
 		  memset(rx_buffer, 0, sizeof(rx_buffer));
 		  memset(tx_buffer, 0, sizeof(tx_buffer));
-
 		  count_time_received_flag=0;
-
 	  }
 	  if(read_request_flag){
 		  Send_Modbus_Func03(&huart1, 0x11, reg_address, reg_quantity);
@@ -438,8 +432,6 @@ int main(void)
 	  }
   }
 }
-
-
   /* USER CODE END 3 */
 
 

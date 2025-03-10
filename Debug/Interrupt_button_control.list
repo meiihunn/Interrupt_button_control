@@ -1127,7 +1127,6 @@ int main(void)
  8000800:	f44f 5100 	mov.w	r1, #8192	@ 0x2000
  8000804:	4839      	ldr	r0, [pc, #228]	@ (80008ec <main+0x118>)
  8000806:	f000 ff6a 	bl	80016de <HAL_GPIO_WritePin>
-
 	  if(key != '\0' ){
  800080a:	4b39      	ldr	r3, [pc, #228]	@ (80008f0 <main+0x11c>)
  800080c:	781b      	ldrb	r3, [r3, #0]
@@ -1204,7 +1203,6 @@ int main(void)
  8000886:	2200      	movs	r2, #0
  8000888:	701a      	strb	r2, [r3, #0]
 		  }
-
 	  if(count_time_received_flag ){
  800088a:	4b1e      	ldr	r3, [pc, #120]	@ (8000904 <main+0x130>)
  800088c:	781b      	ldrb	r3, [r3, #0]
@@ -1213,12 +1211,10 @@ int main(void)
  8000892:	d013      	beq.n	80008bc <main+0xe8>
 		  Received_Modbus();
  8000894:	f7ff fd4a 	bl	800032c <Received_Modbus>
-
 		  rx_count = 0;
  8000898:	4b1b      	ldr	r3, [pc, #108]	@ (8000908 <main+0x134>)
  800089a:	2200      	movs	r2, #0
  800089c:	701a      	strb	r2, [r3, #0]
-
 		  memset(rx_buffer, 0, sizeof(rx_buffer));
  800089e:	f44f 7280 	mov.w	r2, #256	@ 0x100
  80008a2:	2100      	movs	r1, #0
@@ -1229,12 +1225,10 @@ int main(void)
  80008ae:	2100      	movs	r1, #0
  80008b0:	4817      	ldr	r0, [pc, #92]	@ (8000910 <main+0x13c>)
  80008b2:	f002 ffcf 	bl	8003854 <memset>
-
 		  count_time_received_flag=0;
  80008b6:	4b13      	ldr	r3, [pc, #76]	@ (8000904 <main+0x130>)
  80008b8:	2200      	movs	r2, #0
  80008ba:	701a      	strb	r2, [r3, #0]
-
 	  }
 	  if(read_request_flag){
  80008bc:	4b15      	ldr	r3, [pc, #84]	@ (8000914 <main+0x140>)
