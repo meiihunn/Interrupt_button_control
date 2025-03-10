@@ -181,7 +181,7 @@ void Received_Modbus (){
 
 	uint16_t received_crc = (rx_buffer[8 - 1] << 8) | rx_buffer[8 - 2];
 	uint16_t calculated_crc = Modbus_CRC16(rx_buffer, 8 - 2);
-	//Func16
+	//FUNC_16
 	if(rx_buffer[1]== 0x10){
 		if (rx_buffer[0] == tx_buffer[0] && rx_buffer[1] == tx_buffer[1]) {
 			if(rx_buffer [2] == tx_buffer[2] && rx_buffer[3] == tx_buffer[3]){
@@ -207,7 +207,8 @@ void Received_Modbus (){
 		}
 		memset(button_input, 0, sizeof(button_input));
 	}
-	// Func03
+
+	// FUNC_03
 	if(rx_buffer[1] == 0x03){
 		uint8_t byte_count = rx_buffer[2];
 		uint16_t response_length = 3 + byte_count +2;
@@ -215,13 +216,10 @@ void Received_Modbus (){
 		uint16_t calculated_crc = Modbus_CRC16(rx_buffer, response_length -2);
 
 		if(received_crc == calculated_crc) {
-
-
-				uint16_t read_data[10];
-				for (int i = 0; i < 10; i++) {
-
-				    read_data[i] = (rx_buffer[3 + (i * 2)] << 8) | rx_buffer[4 + (i * 2)];
-				}
+			uint16_t read_data[10];
+			for (int i = 0; i < 10; i++) {
+				read_data[i] = (rx_buffer[3 + (i * 2)] << 8) | rx_buffer[4 + (i * 2)];
+			}
 
 // 1 THANH GHI THAY DOI GIA TRI => LED BLINK
 //				uint16_t read_data = (rx_buffer[3] << 8) | rx_buffer[4];
@@ -239,26 +237,21 @@ void Received_Modbus (){
 
 
 // 10 THANH GHI, BAT KY THANH GHI NAO THAY DOI GIA TRI => LED BLINK
-				if (memcmp(read_data, last_read_value, sizeof(read_data)) != 0){
-					memcpy(last_read_value, read_data, sizeof(last_read_value));
-					for(int i=0; i<3; i++){
-						HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-						HAL_Delay(100);
-						HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-						HAL_Delay(100);
-					}
-
+			if (memcmp(read_data, last_read_value, sizeof(read_data)) != 0){
+				memcpy(last_read_value, read_data, sizeof(last_read_value));
+				for(int i=0; i<3; i++){
+					HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+					HAL_Delay(100);
+					HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+					HAL_Delay(100);
 				}
-
+			}
 		}
-
 		else {
 			printf("Func03: Loi CRC!\r\n");
 		}
 	}
 }
-
-
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {

@@ -407,7 +407,7 @@ void Received_Modbus (){
  800034a:	f7ff feff 	bl	800014c <Modbus_CRC16>
  800034e:	4603      	mov	r3, r0
  8000350:	843b      	strh	r3, [r7, #32]
-	//Func16
+	//FUNC_16
 	if(rx_buffer[1]== 0x10){
  8000352:	4b67      	ldr	r3, [pc, #412]	@ (80004f0 <Received_Modbus+0x1c4>)
  8000354:	785b      	ldrb	r3, [r3, #1]
@@ -511,7 +511,8 @@ void Received_Modbus (){
  80003f8:	4845      	ldr	r0, [pc, #276]	@ (8000510 <Received_Modbus+0x1e4>)
  80003fa:	f003 fa2b 	bl	8003854 <memset>
 	}
-	// Func03
+
+	// FUNC_03
 	if(rx_buffer[1] == 0x03){
  80003fe:	4b3c      	ldr	r3, [pc, #240]	@ (80004f0 <Received_Modbus+0x1c4>)
  8000400:	785b      	ldrb	r3, [r3, #1]
@@ -556,15 +557,12 @@ void Received_Modbus (){
  8000444:	8b3b      	ldrh	r3, [r7, #24]
  8000446:	429a      	cmp	r2, r3
  8000448:	d14a      	bne.n	80004e0 <Received_Modbus+0x1b4>
-
-
-				uint16_t read_data[10];
-				for (int i = 0; i < 10; i++) {
+			uint16_t read_data[10];
+			for (int i = 0; i < 10; i++) {
  800044a:	2300      	movs	r3, #0
  800044c:	62bb      	str	r3, [r7, #40]	@ 0x28
  800044e:	e018      	b.n	8000482 <Received_Modbus+0x156>
-
-				    read_data[i] = (rx_buffer[3 + (i * 2)] << 8) | rx_buffer[4 + (i * 2)];
+				read_data[i] = (rx_buffer[3 + (i * 2)] << 8) | rx_buffer[4 + (i * 2)];
  8000450:	6abb      	ldr	r3, [r7, #40]	@ 0x28
  8000452:	005b      	lsls	r3, r3, #1
  8000454:	3303      	adds	r3, #3
@@ -586,7 +584,7 @@ void Received_Modbus (){
  8000474:	3330      	adds	r3, #48	@ 0x30
  8000476:	443b      	add	r3, r7
  8000478:	f823 2c2c 	strh.w	r2, [r3, #-44]
-				for (int i = 0; i < 10; i++) {
+			for (int i = 0; i < 10; i++) {
  800047c:	6abb      	ldr	r3, [r7, #40]	@ 0x28
  800047e:	3301      	adds	r3, #1
  8000480:	62bb      	str	r3, [r7, #40]	@ 0x28
@@ -598,7 +596,7 @@ void Received_Modbus (){
 
 
 // 10 THANH GHI, BAT KY THANH GHI NAO THAY DOI GIA TRI => LED BLINK
-				if (memcmp(read_data, last_read_value, sizeof(read_data)) != 0){
+			if (memcmp(read_data, last_read_value, sizeof(read_data)) != 0){
  8000488:	1d3b      	adds	r3, r7, #4
  800048a:	2214      	movs	r2, #20
  800048c:	4921      	ldr	r1, [pc, #132]	@ (8000514 <Received_Modbus+0x1e8>)
@@ -607,7 +605,7 @@ void Received_Modbus (){
  8000494:	4603      	mov	r3, r0
  8000496:	2b00      	cmp	r3, #0
  8000498:	d025      	beq.n	80004e6 <Received_Modbus+0x1ba>
-					memcpy(last_read_value, read_data, sizeof(last_read_value));
+				memcpy(last_read_value, read_data, sizeof(last_read_value));
  800049a:	4b1e      	ldr	r3, [pc, #120]	@ (8000514 <Received_Modbus+0x1e8>)
  800049c:	461d      	mov	r5, r3
  800049e:	1d3c      	adds	r4, r7, #4
@@ -615,34 +613,34 @@ void Received_Modbus (){
  80004a2:	c50f      	stmia	r5!, {r0, r1, r2, r3}
  80004a4:	6823      	ldr	r3, [r4, #0]
  80004a6:	602b      	str	r3, [r5, #0]
-					for(int i=0; i<3; i++){
+				for(int i=0; i<3; i++){
  80004a8:	2300      	movs	r3, #0
  80004aa:	627b      	str	r3, [r7, #36]	@ 0x24
  80004ac:	e014      	b.n	80004d8 <Received_Modbus+0x1ac>
-						HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
  80004ae:	2200      	movs	r2, #0
  80004b0:	f44f 5100 	mov.w	r1, #8192	@ 0x2000
  80004b4:	4810      	ldr	r0, [pc, #64]	@ (80004f8 <Received_Modbus+0x1cc>)
  80004b6:	f001 f912 	bl	80016de <HAL_GPIO_WritePin>
-						HAL_Delay(100);
+					HAL_Delay(100);
  80004ba:	2064      	movs	r0, #100	@ 0x64
  80004bc:	f000 fd90 	bl	8000fe0 <HAL_Delay>
-						HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
  80004c0:	2201      	movs	r2, #1
  80004c2:	f44f 5100 	mov.w	r1, #8192	@ 0x2000
  80004c6:	480c      	ldr	r0, [pc, #48]	@ (80004f8 <Received_Modbus+0x1cc>)
  80004c8:	f001 f909 	bl	80016de <HAL_GPIO_WritePin>
-						HAL_Delay(100);
+					HAL_Delay(100);
  80004cc:	2064      	movs	r0, #100	@ 0x64
  80004ce:	f000 fd87 	bl	8000fe0 <HAL_Delay>
-					for(int i=0; i<3; i++){
+				for(int i=0; i<3; i++){
  80004d2:	6a7b      	ldr	r3, [r7, #36]	@ 0x24
  80004d4:	3301      	adds	r3, #1
  80004d6:	627b      	str	r3, [r7, #36]	@ 0x24
  80004d8:	6a7b      	ldr	r3, [r7, #36]	@ 0x24
  80004da:	2b02      	cmp	r3, #2
  80004dc:	dde7      	ble.n	80004ae <Received_Modbus+0x182>
-
+		}
 		else {
 			printf("Func03: Loi CRC!\r\n");
 		}
@@ -671,8 +669,6 @@ void Received_Modbus (){
  8000518:	080043f0 	.word	0x080043f0
 
 0800051c <HAL_GPIO_EXTI_Callback>:
-
-
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
